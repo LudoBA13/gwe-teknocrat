@@ -22,7 +22,7 @@ function generateDocuments(templateUrl, dataRange)
 	for (let i = 1; i < data.length; ++i)
 	{
 		const rowData = data[i];
-		const map = new Map();
+		const map = new Map;
 		for (let j = 0; j < headers.length; ++j)
 		{
 			map.set(headers[j], rowData[j]);
@@ -73,4 +73,17 @@ function replacePlaceholdersInDocument(doc, map)
 		textElement.deleteText(r.start, r.end);
 		textElement.insertText(r.start, r.value);
 	}
+}
+
+function saveUserProperties(url, range)
+{
+    PropertiesService.getUserProperties().setProperties({
+        'teknocrat.templateUrl': url,
+        'teknocrat.dataRange': range
+    });
+}
+
+function getUserProperties()
+{
+    return PropertiesService.getUserProperties().getProperties();
 }
