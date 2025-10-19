@@ -116,9 +116,9 @@ function replacePlaceholdersInString(str, map)
 {
 	return str.replace(
 		/<<([^>]+)>>/g,
-		function (m)
+		function (match, key)
 		{
-			return map.get(m[1]) || '';
+			return map.get(key) || '';
 		}
 	);
 }
