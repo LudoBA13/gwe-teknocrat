@@ -53,11 +53,7 @@ function generateDocuments(templateUrl, dataRange, outputFolderId, docPath)
 		}
 
 		// Resolve placeholders in the doc path
-		let resolvedDocPath = docPath;
-		for (const [key, value] of map.entries())
-		{
-			resolvedDocPath = resolvedDocPath.replace(new RegExp('<<' + key + '>>', 'g'), value);
-		}
+		const resolvedDocPath = replacePlaceholdersInString(docPath, map);
 
 		const pathParts     = resolvedDocPath.split('/');
 		const docName       = pathParts.pop();
@@ -102,6 +98,16 @@ function replacePlaceholdersInDocument(doc, map)
 	{
 		body.replaceText(match, replace);
 	}
+}
+
+function replacePlaceholdersInString(str, map)
+{
+	let result = str;
+	for (const [key, value] of map.entries())
+	{
+		result = result.replace(new RegExp('<<' + key + '>>', 'g'), value);
+	}
+	return result;
 }
 
 function saveUserProperties(url, range, outputFolderId, docPath)
