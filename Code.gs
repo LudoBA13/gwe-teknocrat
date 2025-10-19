@@ -68,7 +68,7 @@ function generateDocuments(templateUrl, dataRange, outputFolderId, docPath)
 		const tmpName    = 'teknocrat-' + Math.random().toString(36).substring(2);
 		const tmpDoc     = DriveApp.getFileById(docId).makeCopy(tmpName);
 		const trgDocFile = DocumentApp.openById(tmpDoc.getId());
-		
+
 		replacePlaceholdersInDocument(trgDocFile, map);
 		trgDocFile.saveAndClose();
 
@@ -79,37 +79,20 @@ function generateDocuments(templateUrl, dataRange, outputFolderId, docPath)
 
 function replacePlaceholdersInDocument(doc, map)
 {
-	const body = doc.getBody();
-	const replacements = [];
-	const searchPattern = '<<.*?>>';
-
-	// 1. Find all placeholders and store them with their replacement values
-	let searchResult = body.findText(searchPattern);
-	while (searchResult)
+	const body           = doc.getBody();
+	const replacementMap = new Map;
+	for (const m of body.getText().matchAll(/<<([^>]+)>>/g))
 	{
-		const rangeElement = searchResult.getElement();
-		const text = rangeElement.asText().getText();
-		const placeholder = text.substring(searchResult.getStartOffset(), searchResult.getEndOffsetInclusive() + 1);
-		const key = placeholder.substring(2, placeholder.length - 2);
-		const value = map.get(key) || '';
+		const key     = m[1];
+		const match   = m[0].replace(/[.\\+*?^$()\[\]{}|]/g, '\\$&');
+		const replace = map.get(key) || '';
 
-		replacements.push({
-			rangeElement: rangeElement,
-			start: searchResult.getStartOffset(),
-			end: searchResult.getEndOffsetInclusive(),
-			value: value
-		});
-
-		searchResult = body.findText(searchPattern, searchResult);
+		replacementMap.set(match, replace);
 	}
 
-	// 2. Perform the replacements in reverse order
-	for (let i = replacements.length - 1; i >= 0; --i)
+	for (const [match, replace] of replacementMap.entries())
 	{
-		const r = replacements[i];
-		const textElement = r.rangeElement.asText();
-		textElement.deleteText(r.start, r.end);
-		textElement.insertText(r.start, r.value);
+		body.replaceText(match, replace);
 	}
 }
 
