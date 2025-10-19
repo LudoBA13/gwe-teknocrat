@@ -41,8 +41,10 @@ function generateDocuments(templateUrl, dataRange, outputFolderId, docPath)
 	const data = sheet.getRange(dataRange).getValues();
 	const headers = data[0];
 
-	const outputFolder = DriveApp.getFolderById(outputFolderId);
+	const docId        = DocumentApp.openByUrl(templateUrl).getId();
+	const srcDoc       = DriveApp.getFileById(docId);
 
+	const outputFolder = DriveApp.getFolderById(outputFolderId);
 	for (let i = 1; i < data.length; ++i)
 	{
 		const rowData = data[i];
@@ -50,6 +52,21 @@ function generateDocuments(templateUrl, dataRange, outputFolderId, docPath)
 		for (let j = 0; j < headers.length; ++j)
 		{
 			map.set(headers[j], rowData[j]);
+		}
+
+		const tmpName    = 'teknocrat-' + Math.random().toString(36).substring(2);
+		const trgDoc     = srcDoc.makeCopy(tmpName);
+		const trgDocFile = DocumentApp.openById(trgDoc.getId());
+
+		replacePlaceholdersInDocument(trgDocFile, map);
+		trgDocFile.saveAndClose();
+
+		// Check if cancellation was requested
+		if (PropertiesService.getUserProperties().getProperty('cancelRequested') === 'true')
+		{
+			trgDoc.setTrashed(true);
+			PropertiesService.getUserProperties().deleteProperty('cancelRequested');
+			break;
 		}
 
 		// Resolve placeholders in the doc path
@@ -60,24 +77,8 @@ function generateDocuments(templateUrl, dataRange, outputFolderId, docPath)
 		const subfolderPath = pathParts.join('/');
 		const trgFolder     = getOrCreateSubFolder(outputFolder, subfolderPath);
 
-		const docId      = DocumentApp.openByUrl(templateUrl).getId();
-		const tmpName    = 'teknocrat-' + Math.random().toString(36).substring(2);
-		const tmpDoc     = DriveApp.getFileById(docId).makeCopy(tmpName);
-		const trgDocFile = DocumentApp.openById(tmpDoc.getId());
-
-		replacePlaceholdersInDocument(trgDocFile, map);
-		trgDocFile.saveAndClose();
-
-		// Check if cancellation was requested
-		if (PropertiesService.getUserProperties().getProperty('cancelRequested') === 'true')
-		{
-			tmpDoc.setTrashed(true);
-			PropertiesService.getUserProperties().deleteProperty('cancelRequested');
-			break;
-		}
-
 		// Move and rename
-		tmpDoc.moveTo(trgFolder).setName(docName);
+		trgDoc.moveTo(trgFolder).setName(docName);
 	}
 }
 
