@@ -129,7 +129,8 @@
 				// Disable cancel button once clicked
 				cancelButton.disabled = true;
 				alert('Document generation cannot be interrupted once started, but it will complete shortly.');
-				// No server-side action here as Apps Script cannot be truly interrupted.
+				// Signal the server to mark for cancellation
+				google.script.run.setCancelFlag();
 			}
 		</script>
 	</body>

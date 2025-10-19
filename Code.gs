@@ -72,6 +72,14 @@ function generateDocuments(templateUrl, dataRange, outputFolderId, docPath)
 		replacePlaceholdersInDocument(trgDocFile, map);
 		trgDocFile.saveAndClose();
 
+		// Check if cancellation was requested
+		if (PropertiesService.getUserProperties().getProperty('cancelRequested') === 'true')
+		{
+			tmpDoc.setTrashed(true);
+			PropertiesService.getUserProperties().deleteProperty('cancelRequested');
+			break;
+		}
+
 		// Move and rename
 		tmpDoc.moveTo(trgFolder).setName(docName);
 	}
@@ -109,4 +117,9 @@ function saveUserProperties(url, range, outputFolderId, docPath)
 function getUserProperties()
 {
 	return PropertiesService.getUserProperties().getProperties();
+}
+
+function setCancelFlag()
+{
+	PropertiesService.getUserProperties().setProperty('cancelRequested', 'true');
 }
