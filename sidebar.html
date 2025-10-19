@@ -44,6 +44,13 @@
 		
 		<label for="data-range">Data Range (e.g., A1:C10):</label>
 		<input type="text" id="data-range">
+
+		<label for="output-folder-id">Output Folder ID:</label>
+		<input type="text" id="output-folder-id">
+		<small>Right-click a folder in Google Drive, select "Get link", and copy the ID from the URL.</small>
+
+		<label for="doc-path">Document Name Template:</label>
+		<input type="text" id="doc-path">
 		
 		<button onclick="generateDocs()">Generate Docs</button>
 		
@@ -52,6 +59,8 @@
 				google.script.run.withSuccessHandler(function(props) {
 					document.getElementById('template-url').value = props['teknocrat.templateUrl'] || '';
 					document.getElementById('data-range').value = props['teknocrat.dataRange'] || '';
+					document.getElementById('output-folder-id').value = props['teknocrat.outputFolderId'] || '';
+					document.getElementById('doc-path').value = props['teknocrat.docPath'] || '';
 				}).getUserProperties();
 			});
 
@@ -59,11 +68,13 @@
 			{
 				const templateUrl = document.getElementById('template-url').value;
 				const dataRange = document.getElementById('data-range').value;
+				const outputFolderId = document.getElementById('output-folder-id').value;
+				const docPath = document.getElementById('doc-path').value;
 
 				// Save the values before running the generation
-				google.script.run.saveUserProperties(templateUrl, dataRange);
+				google.script.run.saveUserProperties(templateUrl, dataRange, outputFolderId, docPath);
 
-				google.script.run.generateDocuments(templateUrl, dataRange);
+				google.script.run.generateDocuments(templateUrl, dataRange, outputFolderId, docPath);
 			}
 		</script>
 	</body>

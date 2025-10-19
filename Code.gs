@@ -12,12 +12,36 @@ function showSidebar()
 	SpreadsheetApp.getUi().showSidebar(html);
 }
 
-function generateDocuments(templateUrl, dataRange)
+function getOrCreateSubFolder(baseFolder, path)
+{
+	const parts = path.split('/');
+	let currentFolder = baseFolder;
+	for (const part of parts)
+	{
+		// Ignore empty parts from trailing slashes etc.
+		if (part)
+		{
+			const folders = currentFolder.getFoldersByName(part);
+			if (folders.hasNext())
+			{
+				currentFolder = folders.next();
+			}
+			else
+			{
+				currentFolder = currentFolder.createFolder(part);
+			}
+		}
+	}
+	return currentFolder;
+}
+
+function generateDocuments(templateUrl, dataRange, outputFolderId, docPath)
 {
 	const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
 	const data = sheet.getRange(dataRange).getValues();
-
 	const headers = data[0];
+
+	const outputFolder = DriveApp.getFolderById(outputFolderId);
 
 	for (let i = 1; i < data.length; ++i)
 	{
@@ -28,14 +52,28 @@ function generateDocuments(templateUrl, dataRange)
 			map.set(headers[j], rowData[j]);
 		}
 
-		const docId      = DocumentApp.openByUrl(templateUrl).getId();
-		const newDoc     = DriveApp.getFileById(docId).makeCopy();
-		const newDocFile = DocumentApp.openById(newDoc.getId());
-		
-		replacePlaceholdersInDocument(newDocFile, map);
+		// Resolve placeholders in the doc path
+		let resolvedDocPath = docPath;
+		for (const [key, value] of map.entries())
+		{
+			resolvedDocPath = resolvedDocPath.replace(new RegExp('<<' + key + '>>', 'g'), value);
+		}
 
-		newDocFile.setName('Generated Doc ' + i);
-		newDocFile.saveAndClose();
+		const pathParts     = resolvedDocPath.split('/');
+		const docName       = pathParts.pop();
+		const subfolderPath = pathParts.join('/');
+		const trgFolder     = getOrCreateSubFolder(outputFolder, subfolderPath);
+
+		const docId      = DocumentApp.openByUrl(templateUrl).getId();
+		const tmpName    = 'teknocrat-' + Math.random().toString(36).substring(2);
+		const tmpDoc     = DriveApp.getFileById(docId).makeCopy(tmpName);
+		const trgDocFile = DocumentApp.openById(tmpDoc.getId());
+		
+		replacePlaceholdersInDocument(trgDocFile, map);
+		trgDocFile.saveAndClose();
+
+		// Move and rename
+		tmpDoc.moveTo(trgFolder).setName(docName);
 	}
 }
 
@@ -75,15 +113,17 @@ function replacePlaceholdersInDocument(doc, map)
 	}
 }
 
-function saveUserProperties(url, range)
+function saveUserProperties(url, range, outputFolderId, docPath)
 {
-    PropertiesService.getUserProperties().setProperties({
-        'teknocrat.templateUrl': url,
-        'teknocrat.dataRange': range
-    });
+	PropertiesService.getUserProperties().setProperties({
+		'teknocrat.templateUrl': url,
+		'teknocrat.dataRange': range,
+		'teknocrat.outputFolderId': outputFolderId,
+		'teknocrat.docPath': docPath
+	});
 }
 
 function getUserProperties()
 {
-    return PropertiesService.getUserProperties().getProperties();
+	return PropertiesService.getUserProperties().getProperties();
 }
