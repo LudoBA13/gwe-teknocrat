@@ -45,41 +45,52 @@ function generateDocuments(templateUrl, dataRange, outputFolderId, docPath)
 	const srcDoc       = DriveApp.getFileById(docId);
 
 	const outputFolder = DriveApp.getFolderById(outputFolderId);
+
 	for (let i = 1; i < data.length; ++i)
 	{
 		const rowData = data[i];
-		const map = new Map;
-		for (let j = 0; j < headers.length; ++j)
+		const cancelled = generateDocument(srcDoc, outputFolder, docPath, rowData, headers);
+		if (cancelled)
 		{
-			map.set(headers[j], rowData[j]);
-		}
-
-		const tmpName    = 'teknocrat-' + Math.random().toString(36).substring(2);
-		const trgDoc     = srcDoc.makeCopy(tmpName);
-		const trgDocFile = DocumentApp.openById(trgDoc.getId());
-
-		replacePlaceholdersInDocument(trgDocFile, map);
-		trgDocFile.saveAndClose();
-
-		// Check if cancellation was requested
-		if (PropertiesService.getUserProperties().getProperty('cancelRequested') === 'true')
-		{
-			trgDoc.setTrashed(true);
-			PropertiesService.getUserProperties().deleteProperty('cancelRequested');
 			break;
 		}
-
-		// Resolve placeholders in the doc path
-		const resolvedDocPath = replacePlaceholdersInString(docPath, map);
-
-		const pathParts     = resolvedDocPath.split('/');
-		const docName       = pathParts.pop();
-		const subfolderPath = pathParts.join('/');
-		const trgFolder     = getOrCreateSubFolder(outputFolder, subfolderPath);
-
-		// Move and rename
-		trgDoc.moveTo(trgFolder).setName(docName);
 	}
+}
+
+function generateDocument(srcDoc, outputFolder, docPath, rowData, headers)
+{
+	const map = new Map;
+	for (let j = 0; j < headers.length; ++j)
+	{
+		map.set(headers[j], rowData[j]);
+	}
+
+	// Resolve placeholders in the doc path
+	const resolvedDocPath = replacePlaceholdersInString(docPath, map);
+
+	const pathParts     = resolvedDocPath.split('/');
+	const docName       = pathParts.pop();
+	const subfolderPath = pathParts.join('/');
+	const trgFolder     = getOrCreateSubFolder(outputFolder, subfolderPath);
+
+	const tmpName    = 'teknocrat-' + Math.random().toString(36).substring(2);
+	const trgDoc     = srcDoc.makeCopy(tmpName);
+	const trgDocFile = DocumentApp.openById(trgDoc.getId());
+
+	replacePlaceholdersInDocument(trgDocFile, map);
+	trgDocFile.saveAndClose();
+
+	// Check if cancellation was requested
+	if (PropertiesService.getUserProperties().getProperty('cancelRequested') === 'true')
+	{
+		trgDoc.setTrashed(true); // Move to trash
+		PropertiesService.getUserProperties().deleteProperty('cancelRequested'); // Clear the flag
+		return true; // Signal cancellation
+	}
+
+	// Move and rename
+	trgDoc.moveTo(trgFolder).setName(docName);
+	return false; // Not cancelled
 }
 
 function replacePlaceholdersInDocument(doc, map)
