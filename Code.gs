@@ -102,12 +102,13 @@ function replacePlaceholdersInDocument(doc, map)
 
 function replacePlaceholdersInString(str, map)
 {
-	let result = str;
-	for (const [key, value] of map.entries())
-	{
-		result = result.replace(new RegExp('<<' + key + '>>', 'g'), value);
-	}
-	return result;
+	return str.replace(
+		/<<([^>]+)>>/g,
+		function (m)
+		{
+			return map.get(m[1]) || '';
+		}
+	);
 }
 
 function saveUserProperties(url, range, outputFolderId, docPath)
