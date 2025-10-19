@@ -38,7 +38,7 @@ function getOrCreateSubFolder(baseFolder, path)
 function generateDocuments(templateUrl, dataRange, outputFolderId, docPath)
 {
 	const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-	const data = sheet.getRange(dataRange).getValues();
+	const data = sheet.getRange(dataRange).getDisplayValues();
 	const headers = data[0];
 
 	const docId        = DocumentApp.openByUrl(templateUrl).getId();
