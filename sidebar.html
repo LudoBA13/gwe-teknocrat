@@ -33,6 +33,19 @@
 			{
 				background-color: #357ae8;
 			}
+			button:disabled
+			{
+				background-color: #cccccc;
+				cursor: not-allowed;
+			}
+			.cancel-button-style
+			{
+				background-color: #dc3545; /* Red color */
+			}
+			.cancel-button-style:hover:enabled
+			{
+				background-color: #c82333; /* Darker red on hover for enabled state */
+			}
 		</style>
 	</head>
 	<body>
@@ -52,16 +65,22 @@
 		<label for="doc-path">Document Name Template:</label>
 		<input type="text" id="doc-path">
 		
-		<button onclick="generateDocs()">Generate Docs</button>
+		<button id="generate-button" onclick="generateDocs()">Generate Docs</button>
+		<button id="cancel-button" class="cancel-button-style" onclick="cancelGeneration()">Cancel</button>
 		
 		<script>
-			window.addEventListener('load', function() {
-				google.script.run.withSuccessHandler(function(props) {
+			window.addEventListener('load', function()
+			{
+				google.script.run.withSuccessHandler(function(props)
+				{
 					document.getElementById('template-url').value = props['teknocrat.templateUrl'] || '';
 					document.getElementById('data-range').value = props['teknocrat.dataRange'] || '';
 					document.getElementById('output-folder-id').value = props['teknocrat.outputFolderId'] || '';
 					document.getElementById('doc-path').value = props['teknocrat.docPath'] || '';
 				}).getUserProperties();
+
+				// Initial state: Cancel button disabled
+				document.getElementById('cancel-button').disabled = true;
 			});
 
 			function generateDocs()
@@ -71,10 +90,46 @@
 				const outputFolderId = document.getElementById('output-folder-id').value;
 				const docPath = document.getElementById('doc-path').value;
 
-				// Save the values before running the generation
-				google.script.run.saveUserProperties(templateUrl, dataRange, outputFolderId, docPath);
+				const generateButton = document.getElementById('generate-button');
+				const cancelButton = document.getElementById('cancel-button');
 
-				google.script.run.generateDocuments(templateUrl, dataRange, outputFolderId, docPath);
+				generateButton.disabled = true; // Disable generate button
+				cancelButton.disabled = false; // Enable cancel button
+
+				const successHandler = function()
+				{
+					generateButton.disabled = false; // Re-enable generate button
+					cancelButton.disabled = true; // Disable cancel button
+					// Optionally, show a success message
+				};
+
+				const failureHandler = function(error)
+				{
+					generateButton.disabled = false; // Re-enable generate button
+					cancelButton.disabled = true; // Disable cancel button
+					alert('Error: ' + error.message); // Show error message
+				};
+
+				// Save the values before running the generation
+				google.script.run
+					.withSuccessHandler(function()
+					{
+						google.script.run
+							.withSuccessHandler(successHandler)
+							.withFailureHandler(failureHandler)
+							.generateDocuments(templateUrl, dataRange, outputFolderId, docPath);
+					})
+					.withFailureHandler(failureHandler)
+					.saveUserProperties(templateUrl, dataRange, outputFolderId, docPath);
+			}
+
+			function cancelGeneration()
+			{
+				const cancelButton = document.getElementById('cancel-button');
+				// Disable cancel button once clicked
+				cancelButton.disabled = true;
+				alert('Document generation cannot be interrupted once started, but it will complete shortly.');
+				// No server-side action here as Apps Script cannot be truly interrupted.
 			}
 		</script>
 	</body>
