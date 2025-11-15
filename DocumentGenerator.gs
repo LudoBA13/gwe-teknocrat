@@ -106,15 +106,8 @@ class DocumentGenerator
 	{
 		const body = this.document.getBody();
 		const text = body.getText();
-		const placeholders = new Set;
-		let m;
-		while (m = this.placeholderRegex.exec(text))
-		{
-			if (m[1]) {
-				placeholders.add(m[1]);
-			}
-		}
-		return [...placeholders];
+		const matches = text.matchAll(this.placeholderRegex);
+		return [...new Set(Array.from(matches, match => match[1]))];
 	}
 
 	/**
