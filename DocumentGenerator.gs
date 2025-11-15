@@ -5,6 +5,12 @@ class DocumentGenerator
 {
 	/**
 	 * @private
+	 * @type {GoogleAppsScript.Drive.File}
+	 */
+	templateFile;
+
+	/**
+	 * @private
 	 * @type {GoogleAppsScript.Document.Document}
 	 */
 	templateDocument;
@@ -54,12 +60,15 @@ class DocumentGenerator
 	{
 		if (docUrlOrId.startsWith('https://'))
 		{
-			this.templateDocument = DocumentApp.openByUrl(docUrlOrId);
+			const doc = DocumentApp.openByUrl(docUrlOrId);
+			this.templateFile = DriveApp.getFileById(doc.getId());
 		}
 		else
 		{
-			this.templateDocument = DocumentApp.openById(docUrlOrId);
+			this.templateFile = DriveApp.getFileById(docUrlOrId);
 		}
+
+		this.templateDocument = DocumentApp.openById(this.templateFile.getId());
 
 		this.placeholderStart = placeholderStart;
 		this.placeholderEnd = placeholderEnd;
@@ -80,25 +89,25 @@ class DocumentGenerator
 	 */
 	_escapeRegExp(str)
 	{
-		return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+		return str.replace(/[.*+?^${}()|[\\]/g, '\\$&'); // $& means the whole matched string
 	}
 
 	/**
-	 * Returns the currently managed template document.
-	 * @return {GoogleAppsScript.Document.Document} The Google Document.
+	 * Returns the currently managed template file.
+	 * @return {GoogleAppsScript.Drive.File} The Google Drive File.
 	 */
-	getTemplateDocument()
+	getTemplateFile()
 	{
-		return this.templateDocument;
+		return this.templateFile;
 	}
 
 	/**
-	 * Returns the ID of the currently managed template document.
-	 * @return {string} The ID of the Google Document.
+	 * Returns the ID of the currently managed template file.
+	 * @return {string} The ID of the Google Drive File.
 	 */
-	getTemplateDocumentId()
+	getTemplateFileId()
 	{
-		return this.templateDocument.getId();
+		return this.templateFile.getId();
 	}
 
 	/**
@@ -125,10 +134,41 @@ class DocumentGenerator
 	 */
 	_getPlaceholders()
 	{
-		const body = this.templateDocument.getBody();
-		const text = body.getText();
+		const text = this.templateDocument.getBody().getText();
 		const matches = text.matchAll(this.placeholderRegex);
 		return new Set(Array.from(matches, match => match[1]));
+	}
+
+	/**
+	 * Generates a new document from the template, replacing placeholders with the provided variables.
+	 * @param {Iterable<[string, string]>} vars An iterable of key-value pairs for placeholder replacement.
+	 * @return {GoogleAppsScript.Document.Document} The newly generated document.
+	 */
+	generateDocument(vars)
+	{
+		// 1. Create a copy
+		const templateFile = DriveApp.getFileById(this.templateFile.getId());
+		const newFile = templateFile.makeCopy();
+		const outputDocument = DocumentApp.openById(newFile.getId());
+		const body = outputDocument.getBody();
+
+		// 2. Iterate and replace from vars
+		for (const [key, value] of vars)
+		{
+			const specificPlaceholderRegex = new RegExp(
+				this.escapedPlaceholderStart +
+				this._escapeRegExp(key) +
+				this.escapedPlaceholderEnd,
+				'g'
+			);
+			body.replaceText(specificPlaceholderRegex, value);
+		}
+
+		// 3. Replace remaining placeholders with empty string
+		body.replaceText(this.placeholderRegex, '');
+
+		// 4. Return the new document
+		return outputDocument;
 	}
 
 	/**
