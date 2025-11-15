@@ -40,6 +40,12 @@ class DocumentGenerator
 	escapedPlaceholderEnd;
 
 	/**
+	 * @private
+	 * @type {Set<string>}
+	 */
+	placeholders;
+
+	/**
 	 * @param {string} docUrlOrId The URL or ID of the Google Document.
 	 * @param {string=} placeholderStart Optional. The starting delimiter for placeholders. Defaults to '<<'.
 	 * @param {string=} placeholderEnd Optional. The ending delimiter for placeholders. Defaults to '>>'.
@@ -62,6 +68,8 @@ class DocumentGenerator
 		this.escapedPlaceholderEnd = this._escapeRegExp(placeholderEnd);
 
 		this.placeholderRegex = new RegExp(this.escapedPlaceholderStart + '(.*?)' + this.escapedPlaceholderEnd, 'g');
+
+		this.placeholders = this._getPlaceholders();
 	}
 
 	/**
@@ -112,14 +120,15 @@ class DocumentGenerator
 
 	/**
 	 * Collects all unique placeholder keys from the document.
-	 * @return {Array<string>} An array of unique placeholder keys.
+	 * @return {Set<string>} A set of unique placeholder keys.
+	 * @private
 	 */
-	getPlaceholders()
+	_getPlaceholders()
 	{
 		const body = this.templateDocument.getBody();
 		const text = body.getText();
 		const matches = text.matchAll(this.placeholderRegex);
-		return [...new Set(Array.from(matches, match => match[1]))];
+		return new Set(Array.from(matches, match => match[1]));
 	}
 
 	/**
