@@ -99,6 +99,25 @@ class DocumentGenerator
 	}
 
 	/**
+	 * Collects all unique placeholder keys from the document.
+	 * @return {Array<string>} An array of unique placeholder keys.
+	 */
+	getPlaceholders()
+	{
+		const body = this.document.getBody();
+		const text = body.getText();
+		const placeholders = new Set;
+		let m;
+		while (m = this.placeholderRegex.exec(text))
+		{
+			if (m[1]) {
+				placeholders.add(m[1]);
+			}
+		}
+		return [...placeholders];
+	}
+
+	/**
 	 * Saves and closes the currently managed document.
 	 */
 	saveAndCloseDocument()
