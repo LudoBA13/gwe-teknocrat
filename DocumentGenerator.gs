@@ -7,7 +7,7 @@ class DocumentGenerator
 	 * @private
 	 * @type {GoogleAppsScript.Document.Document}
 	 */
-	document;
+	templateDocument;
 
 	/**
 	 * @private
@@ -28,6 +28,18 @@ class DocumentGenerator
 	placeholderRegex;
 
 	/**
+	 * @private
+	 * @type {string}
+	 */
+	escapedPlaceholderStart;
+
+	/**
+	 * @private
+	 * @type {string}
+	 */
+	escapedPlaceholderEnd;
+
+	/**
 	 * @param {string} docUrlOrId The URL or ID of the Google Document.
 	 * @param {string=} placeholderStart Optional. The starting delimiter for placeholders. Defaults to '<<'.
 	 * @param {string=} placeholderEnd Optional. The ending delimiter for placeholders. Defaults to '>>'.
@@ -36,20 +48,20 @@ class DocumentGenerator
 	{
 		if (docUrlOrId.startsWith('https://'))
 		{
-			this.document = DocumentApp.openByUrl(docUrlOrId);
+			this.templateDocument = DocumentApp.openByUrl(docUrlOrId);
 		}
 		else
 		{
-			this.document = DocumentApp.openById(docUrlOrId);
+			this.templateDocument = DocumentApp.openById(docUrlOrId);
 		}
 
 		this.placeholderStart = placeholderStart;
 		this.placeholderEnd = placeholderEnd;
 
-		const escapedPlaceholderStart = this._escapeRegExp(placeholderStart);
-		const escapedPlaceholderEnd = this._escapeRegExp(placeholderEnd);
+		this.escapedPlaceholderStart = this._escapeRegExp(placeholderStart);
+		this.escapedPlaceholderEnd = this._escapeRegExp(placeholderEnd);
 
-		this.placeholderRegex = new RegExp(escapedPlaceholderStart + '(.*?)' + escapedPlaceholderEnd, 'g');
+		this.placeholderRegex = new RegExp(this.escapedPlaceholderStart + '(.*?)' + this.escapedPlaceholderEnd, 'g');
 	}
 
 	/**
@@ -64,21 +76,21 @@ class DocumentGenerator
 	}
 
 	/**
-	 * Returns the currently managed document.
+	 * Returns the currently managed template document.
 	 * @return {GoogleAppsScript.Document.Document} The Google Document.
 	 */
-	getDocument()
+	getTemplateDocument()
 	{
-		return this.document;
+		return this.templateDocument;
 	}
 
 	/**
-	 * Returns the ID of the currently managed document.
+	 * Returns the ID of the currently managed template document.
 	 * @return {string} The ID of the Google Document.
 	 */
-	getDocumentId()
+	getTemplateDocumentId()
 	{
-		return this.document.getId();
+		return this.templateDocument.getId();
 	}
 
 	/**
@@ -88,11 +100,11 @@ class DocumentGenerator
 	 */
 	replacePlaceholder(key, value)
 	{
-		const body = this.document.getBody();
+		const body = this.templateDocument.getBody();
 		const specificPlaceholderRegex = new RegExp(
-			this._escapeRegExp(this.placeholderStart) +
+			this.escapedPlaceholderStart +
 			this._escapeRegExp(key) +
-			this._escapeRegExp(this.placeholderEnd),
+			this.escapedPlaceholderEnd,
 			'g'
 		);
 		body.replaceText(specificPlaceholderRegex, value);
@@ -104,7 +116,7 @@ class DocumentGenerator
 	 */
 	getPlaceholders()
 	{
-		const body = this.document.getBody();
+		const body = this.templateDocument.getBody();
 		const text = body.getText();
 		const matches = text.matchAll(this.placeholderRegex);
 		return [...new Set(Array.from(matches, match => match[1]))];
@@ -115,6 +127,6 @@ class DocumentGenerator
 	 */
 	saveAndCloseDocument()
 	{
-		this.document.saveAndClose();
+		this.templateDocument.saveAndClose();
 	}
 }
